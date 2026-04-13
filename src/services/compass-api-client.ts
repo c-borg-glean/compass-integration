@@ -28,12 +28,16 @@ export class CompassApiClient {
 
   constructor(authService: CompassAuthService) {
     this.authService = authService;
+    // INC-XXXX: ICE Compass v23.2 requires X-API-Version header on all requests.
+    // Without it, all submissions return 503. Value is config-driven via
+    // channel-integration.json "apiVersion" field.
     this.httpClient = axios.create({
       baseURL: config.compass.apiBaseUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
         'X-Partner-Id': config.compass.partnerId,
+        ...(config.compass.apiVersion && { 'X-API-Version': config.compass.apiVersion }),
       },
     });
   }
