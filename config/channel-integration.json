@@ -1,0 +1,40 @@
+{
+  "compass": {
+    "apiBaseUrl": "https://api.ice-compass.com/v2",
+    "authUrl": "https://auth.ice-compass.com/oauth/token",
+    "partnerId": "PM-ENT-0847",
+    "environment": "production",
+
+    "tokenValidation": {
+      "strictSchemaCheck": true,
+      "requiredFields": ["sub", "iss", "iat", "exp", "scope", "partner_id", "env"],
+      "allowedIssuers": [
+        "https://auth.ice-compass.com",
+        "https://auth.staging.ice-compass.com"
+      ],
+      "scopeFormat": "string",
+      "allowUnknownClaims": false
+    },
+
+    "session": {
+      "sessionTimeoutMinutes": 120,
+      "tokenRefreshBufferMinutes": 15,
+      "maxRetryAttempts": 3,
+      "retryIntervalSeconds": 5
+    },
+
+    "rateLimiting": {
+      "maxRequestsPerMinute": 200,
+      "burstLimit": 50,
+      "backoffBaseMs": 1000,
+      "backoffMaxMs": 30000
+    },
+
+    "healthCheck": {
+      "enabled": true,
+      "intervalMinutes": 5,
+      "endpoint": "/health",
+      "timeoutMs": 5000
+    }
+  }
+}
