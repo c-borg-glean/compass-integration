@@ -3,6 +3,7 @@
     "apiBaseUrl": "https://api.ice-compass.com/v2",
     "authUrl": "https://auth.ice-compass.com/oauth/token",
     "partnerId": "PM-ENT-0847",
+    "apiVersion": "2023-06",
     "environment": "production",
 
     "tokenValidation": {
