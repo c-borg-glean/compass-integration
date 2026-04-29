@@ -34,6 +34,9 @@ export class CompassApiClient {
       headers: {
         'Content-Type': 'application/json',
         'X-Partner-Id': config.compass.partnerId,
+        // ICE Compass v23.2 requires X-API-Version on all requests (503 without it).
+        // See ENG-7234 for permanent contract-testing fix.
+        'X-API-Version': config.compass.apiVersion ?? '2023-06',
       },
     });
   }
