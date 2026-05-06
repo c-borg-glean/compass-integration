@@ -12,8 +12,8 @@
         "https://auth.ice-compass.com",
         "https://auth.staging.ice-compass.com"
       ],
-      "scopeFormat": "string",
-      "allowUnknownClaims": false
+      "scopeFormat": "string_or_array",
+      "allowUnknownClaims": true
     },
 
     "session": {

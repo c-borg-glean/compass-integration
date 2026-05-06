@@ -101,45 +101,59 @@ describe('CompassAuthService', () => {
       expect(() => authService.validateToken(token)).toThrow('missing required scope');
     });
 
-    it('should reject a token with unknown claims', () => {
-      // This test validates the strict schema check that rejects
-      // tokens with unexpected claims. In production, ICE added an
-      // `aud` claim in v23.1 which triggered this rejection and
-      // caused a 12-hour outage. See ENG-7234.
+    it('should allow a token with unknown claims and log a warning', () => {
+      // INC0091447 / ENG-7234: unknown claims are now allowed.
+      // ICE added `aud` in v23.1 which previously caused a 12-hour outage.
       const token = createTestToken(
         createValidLegacyPayload({ unknown_claim: 'unexpected_value' })
       );
 
-      expect(() => authService.validateToken(token)).toThrow(CompassAuthError);
-      expect(() => authService.validateToken(token)).toThrow('unexpected claim');
+      expect(() => authService.validateToken(token)).not.toThrow();
     });
 
-    // =========================================================
-    // MISSING TESTS — These would have caught the v23.1 outage
-    // =========================================================
-    //
-    // TODO: Add test for scope as JSON array format
-    //   ICE v23.1 changed scope from:
-    //     "loan:submit rate:lock borrower:read"  (string)
-    //   to:
-    //     ["loan:submit", "rate:lock", "borrower:read"]  (array)
-    //
-    //   The current validateToken() only handles string format
-    //   and throws OAUTH_TOKEN_VALIDATION_FAILED for arrays.
-    //
-    // TODO: Add test for `aud` (audience) claim
-    //   ICE v23.1 added an `aud` claim to the token payload.
-    //   The current validateToken() rejects unknown claims,
-    //   which means any token with `aud` is rejected.
-    //
-    // TODO: Add test for mixed old/new format compatibility
-    //   During ICE's rollout, some Compass nodes may return
-    //   old format tokens and others return new format.
-    //   validateToken() should accept both.
-    //
-    // See ENG-7234 for the full incident report and the
-    // contract testing pipeline that will prevent this
-    // class of failure going forward.
-    // =========================================================
+    // --- ICE v23.1 format tests (INC0091447 / ENG-7234) ---
+
+    it('should accept a v23.1 token with scope as array', () => {
+      const token = createTestToken(
+        createValidLegacyPayload({
+          scope: ['loan:submit', 'rate:lock', 'borrower:read'],
+        })
+      );
+
+      const result = authService.validateToken(token);
+      expect(result.scope).toEqual(['loan:submit', 'rate:lock', 'borrower:read']);
+    });
+
+    it('should accept a v23.1 token with the aud claim', () => {
+      const token = createTestToken(
+        createValidLegacyPayload({ aud: 'https://api.ice-compass.com' })
+      );
+
+      expect(() => authService.validateToken(token)).not.toThrow();
+    });
+
+    it('should reject a v23.1 array-scope token missing required scopes', () => {
+      const token = createTestToken(
+        createValidLegacyPayload({
+          scope: ['borrower:read'],  // missing loan:submit and rate:lock
+        })
+      );
+
+      expect(() => authService.validateToken(token)).toThrow(CompassAuthError);
+      expect(() => authService.validateToken(token)).toThrow('missing required scope');
+    });
+
+    it('should accept both legacy string and v23.1 array scope formats', () => {
+      const legacyToken = createTestToken(createValidLegacyPayload());
+      const v231Token = createTestToken(
+        createValidLegacyPayload({
+          scope: ['loan:submit', 'rate:lock', 'borrower:read'],
+          aud: 'https://api.ice-compass.com',
+        })
+      );
+
+      expect(() => authService.validateToken(legacyToken)).not.toThrow();
+      expect(() => authService.validateToken(v231Token)).not.toThrow();
+    });
   });
 });
