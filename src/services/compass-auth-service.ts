@@ -126,23 +126,22 @@ export class CompassAuthService {
       }
     }
 
-    // --- CHECK 2: Reject unknown claims ---
-    // This is the defensive check that breaks when ICE adds new claims.
-    // In v23.1, ICE added an `aud` (audience) claim that was not in
-    // our expected schema, causing this check to reject all tokens.
+    // --- CHECK 2: Log unknown claims instead of rejecting ---
+    // INC0091447 / ENG-7234 (ICE v23.1): ICE added `aud` claim without notice,
+    // and the previous strict rejection caused a 12-hour production outage.
+    // Now we log unknown claims as warnings instead of throwing.
     const knownFields = new Set<string>([
       ...REQUIRED_TOKEN_FIELDS,
       'jti',  // JWT ID — optional, sometimes present
+      'aud',  // Audience — added in ICE v23.1
     ]);
 
     for (const key of Object.keys(payload)) {
       if (!knownFields.has(key)) {
-        throw new CompassAuthError(
-          'TOKEN_UNKNOWN_CLAIM',
-          `Compass OAuth token contains unexpected claim: ${key}. ` +
-          `This may indicate a token format change in a recent ICE release. ` +
-          `Check ICE release notes and contact vendor support.`
-        );
+        logger.warn('Compass OAuth token contains unknown claim — allowing but flagging for review', {
+          claim: key,
+          hint: 'ICE may have changed the token format in a recent release. See ENG-7234.',
+        });
       }
     }
 
@@ -154,20 +153,22 @@ export class CompassAuthService {
       );
     }
 
-    // --- CHECK 4: Validate scope format ---
-    // This assumes scope is a space-delimited string per ICE's v22.x format.
-    // OAuth 2.0 spec (RFC 6749) allows both string and array formats.
-    // ICE switched to array format in v23.1 without notice. See ENG-7234.
-    if (typeof payload.scope !== 'string') {
+    // --- CHECK 4 & 5: Parse and validate scopes ---
+    // INC0091447 / ENG-7234 (ICE v23.1): scope changed from space-delimited
+    // string to JSON array. Support both formats for backward compatibility.
+    let scopes: string[];
+    if (typeof payload.scope === 'string') {
+      scopes = payload.scope.split(' ');
+    } else if (Array.isArray(payload.scope)) {
+      scopes = payload.scope;
+    } else {
       throw new CompassAuthError(
         'OAUTH_TOKEN_VALIDATION_FAILED',
-        `token schema mismatch — expected scope as string, got ${typeof payload.scope}. ` +
+        `token schema mismatch — expected scope as string or array, got ${typeof payload.scope}. ` +
         `ICE may have changed the token format in a recent release.`
       );
     }
 
-    // --- CHECK 5: Parse and validate scopes ---
-    const scopes = (payload.scope as string).split(' ');
     const requiredScopes = ['loan:submit', 'rate:lock'];
 
     for (const required of requiredScopes) {

@@ -24,14 +24,11 @@ export interface CompassTokenPayload {
 
   /**
    * Scopes granted to this token.
-   * As of Compass v22.x, this is a space-delimited string.
-   * Example: "loan:submit rate:lock borrower:read"
-   *
-   * NOTE: OAuth 2.0 spec allows both string and array formats.
-   * ICE currently uses string format. If they switch to array,
-   * our validation will break. See ENG-7234 for prior incident.
+   * v22.x: space-delimited string, e.g. "loan:submit rate:lock borrower:read"
+   * v23.1+: JSON array, e.g. ["loan:submit", "rate:lock", "borrower:read"]
+   * Hotfix INC0091447 / ENG-7234: accept both formats.
    */
-  scope: string;
+  scope: string | string[];
 
   /** PennyMac's partner ID in ICE's system */
   partner_id: string;
