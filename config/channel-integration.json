@@ -4,6 +4,7 @@
     "authUrl": "https://auth.ice-compass.com/oauth/token",
     "partnerId": "PM-ENT-0847",
     "environment": "production",
+    "apiVersion": "2023-06",
 
     "tokenValidation": {
       "strictSchemaCheck": true,
